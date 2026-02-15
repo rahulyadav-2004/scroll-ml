@@ -27,8 +27,12 @@ def load_model(path):
     if not os.path.exists(path):
         print(f"⚠️ Model not found at {path}. Pipeline degradation active.")
         return None
-    print(f"📦 Loading model from {path}...")
-    return joblib.load(path)
+    try:
+        print(f"📦 Loading model from {path}...")
+        return joblib.load(path)
+    except Exception as e:
+        print(f"❌ Failed to load model {path}: {e}")
+        return None
 
 model_engagement = load_model(MODEL_PATH)
 model_commerce = load_model(COMMERCE_MODEL_PATH)
