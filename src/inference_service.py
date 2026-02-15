@@ -29,7 +29,9 @@ def load_model(path):
         return None
     try:
         print(f"📦 Loading model from {path}...")
-        return joblib.load(path)
+        model = joblib.load(path)
+        print(f"✅ Model {path} loaded successfully.")
+        return model
     except Exception as e:
         print(f"❌ Failed to load model {path}: {e}")
         return None
