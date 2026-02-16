@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import joblib
 import numpy as np
+import pandas as pd
 import os
 import time
 try:
@@ -102,14 +103,17 @@ def predict(batch: BatchRequest):
             for item in batch.items
         ])
 
-        # 2. Parallel Prediction Logic (Simulated for now, GBDT is fast)
+        # 2. Convert to DataFrame to avoid "X does not have valid feature names" warnings
+        X_df = pd.DataFrame(X, columns=FEATURES)
+
+        # 3. Parallel Prediction Logic
         results = {}
         
         if model_engagement:
-            results["engagement_scores"] = model_engagement.predict_proba(X)[:, 1].tolist()
+            results["engagement_scores"] = model_engagement.predict_proba(X_df)[:, 1].tolist()
         
         if model_commerce:
-            results["commerce_scores"] = model_commerce.predict_proba(X)[:, 1].tolist()
+            results["commerce_scores"] = model_commerce.predict_proba(X_df)[:, 1].tolist()
 
         latency_ms = (time.time() - start_time) * 1000
 
