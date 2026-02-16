@@ -28,7 +28,10 @@ def analyze_shadow_v1():
         "video_quality", 
         "has_products", 
         "hour_of_day", 
-        "completion_rate"
+        "completion_rate",
+        "expected_ctr_at_position",
+        "session_velocity",
+        "session_dwell_time"
     ]
 
     importance_df = pd.DataFrame({

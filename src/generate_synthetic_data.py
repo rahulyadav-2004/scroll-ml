@@ -31,6 +31,16 @@ def generate_synthetic_data(n_samples=10000):
     # completion_rate: 0 to 1
     completion_rate = np.random.uniform(0, 1, n_samples)
 
+    # 3.5 Intelligence Features (Phase 2)
+    # expected_ctr_at_position: Historical bias for this slot
+    expected_ctr_at_position = np.random.uniform(0.01, 0.15, n_samples)
+    
+    # session_velocity: How fast the user is scrolling (Higher = lower engagement probability)
+    session_velocity = np.random.uniform(0.5, 3.0, n_samples)
+    
+    # session_dwell_time: Total seconds in session
+    session_dwell_time = np.random.uniform(0, 600, n_samples)
+
     # 4. Hidden Intent Logic (The true 'Brain' we want to learn)
     # y = weighted combination + noise
     # We want the model to learn that Preference + Quality + Position matters most.
@@ -39,6 +49,8 @@ def generate_synthetic_data(n_samples=10000):
         (video_quality * 0.3) + 
         (has_products * 0.2) - 
         (position_index * 0.05) + # Higher position index = less likely to click
+        (expected_ctr_at_position * 2.0) - # Slot bias matters
+        (session_velocity * 0.1) + # Faster scrolling = less intent
         np.random.normal(0, 0.1, n_samples)
     )
 
@@ -58,6 +70,9 @@ def generate_synthetic_data(n_samples=10000):
         "has_products": has_products,
         "hour_of_day": hour_of_day,
         "completion_rate": completion_rate,
+        "expected_ctr_at_position": expected_ctr_at_position,
+        "session_velocity": session_velocity,
+        "session_dwell_time": session_dwell_time,
         "is_click": is_click,
         "is_purchase": is_purchase
     })

@@ -21,7 +21,10 @@ def train_product_intent_model(dataset_path="data/processed/synthetic_training.p
         "video_quality", 
         "has_products", 
         "hour_of_day", 
-        "completion_rate"
+        "completion_rate",
+        "expected_ctr_at_position",
+        "session_velocity",
+        "session_dwell_time"
     ]
     target = "is_purchase" # Predicting shoppability/high-intent
 
