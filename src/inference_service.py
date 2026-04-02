@@ -13,7 +13,10 @@ except ImportError:
     from fastapi.responses import JSONResponse
     RESPONSE_CLASS = JSONResponse
 
-from feature_engineering import FEATURE_COLUMNS, ensure_feature_frame
+try:
+    from .feature_engineering import FEATURE_COLUMNS, ensure_feature_frame
+except ImportError:
+    from feature_engineering import FEATURE_COLUMNS, ensure_feature_frame
 
 app = FastAPI(
     title="Scroll ML Inference Service",
