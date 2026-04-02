@@ -23,6 +23,10 @@ def run_calibration_check(dataset_path="data/processed/real_training_v1.parquet"
         print("⚠️ No data for calibration check.")
         return
 
+    if shadow_df['is_click'].nunique() < 2:
+        print("⚠️ Need both positive and negative click labels for calibration.")
+        return
+
     shadow_df['ml_shadow_score'] = shadow_df['ml_shadow_score'].astype(float)
     y_true = shadow_df['is_click']
     y_prob = shadow_df['ml_shadow_score']

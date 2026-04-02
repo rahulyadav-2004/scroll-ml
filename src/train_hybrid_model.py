@@ -3,7 +3,9 @@ import lightgbm as lgb
 import joblib
 import os
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import classification_report, roc_auc_score
+from sklearn.metrics import roc_auc_score
+
+from feature_engineering import FEATURE_COLUMNS, ensure_feature_frame
 
 def train_v1_shadow(dataset_path="data/processed/synthetic_training.parquet"):
     """
@@ -15,20 +17,9 @@ def train_v1_shadow(dataset_path="data/processed/synthetic_training.parquet"):
 
     # 1. Feature Selection
     # We choose features that we are already collecting in the production DB
-    features = [
-        "position_index", 
-        "user_category_score", 
-        "video_quality", 
-        "has_products", 
-        "hour_of_day", 
-        "completion_rate",
-        "expected_ctr_at_position",
-        "session_velocity",
-        "session_dwell_time"
-    ]
     target = "is_click" # Using Click as the primary optimization target for v1
 
-    X = df[features]
+    X = ensure_feature_frame(df)
     y = df[target]
 
     # 2. Split
@@ -56,7 +47,8 @@ def train_v1_shadow(dataset_path="data/processed/synthetic_training.parquet"):
     y_prob = model.predict_proba(X_test)[:, 1]
     
     auc = roc_auc_score(y_test, y_prob)
-    print(f"✅ Training complete. Performance (on synthetic data):")
+    print(f"✅ Training complete.")
+    print(f"   Dataset: {dataset_path}")
     print(f"   AUC-ROC: {auc:.4f}")
     
     # 5. Save Artifacts

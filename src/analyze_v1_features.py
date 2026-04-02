@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import os
 
+from feature_engineering import FEATURE_COLUMNS
+
 def analyze_shadow_v1():
     """
     Observability Tool: Analyzes the v1_shadow model to understand feature importance.
@@ -22,20 +24,8 @@ def analyze_shadow_v1():
     importance = model.feature_importances_
     
     # Feature names must match what was passed during trial (from train_hybrid_model.py)
-    feature_names = [
-        "position_index", 
-        "user_category_score", 
-        "video_quality", 
-        "has_products", 
-        "hour_of_day", 
-        "completion_rate",
-        "expected_ctr_at_position",
-        "session_velocity",
-        "session_dwell_time"
-    ]
-
     importance_df = pd.DataFrame({
-        'Feature': feature_names,
+        'Feature': FEATURE_COLUMNS,
         'Importance': importance
     }).sort_values(by='Importance', ascending=False)
 

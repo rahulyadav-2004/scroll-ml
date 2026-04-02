@@ -5,6 +5,8 @@ import os
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import roc_auc_score
 
+from feature_engineering import ensure_feature_frame
+
 def train_product_intent_model(dataset_path="data/processed/synthetic_training.parquet"):
     """
     Trains a specialized model to predict HIGH-INTENT commerce behavior.
@@ -15,20 +17,9 @@ def train_product_intent_model(dataset_path="data/processed/synthetic_training.p
 
     # 1. Feature Selection (Same list as V1 for inference simplicity, 
     # but the model will learn different weights)
-    features = [
-        "position_index", 
-        "user_category_score", 
-        "video_quality", 
-        "has_products", 
-        "hour_of_day", 
-        "completion_rate",
-        "expected_ctr_at_position",
-        "session_velocity",
-        "session_dwell_time"
-    ]
     target = "is_purchase" # Predicting shoppability/high-intent
 
-    X = df[features]
+    X = ensure_feature_frame(df)
     y = df[target]
 
     # 2. Split
