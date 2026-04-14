@@ -6,7 +6,10 @@ from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.exc import SQLAlchemyError
 
-from feature_engineering import ensure_training_frame
+try:
+    from .feature_engineering import ensure_training_frame
+except ImportError:
+    from feature_engineering import ensure_training_frame
 
 
 load_dotenv()
@@ -41,6 +44,8 @@ def build_training_dataset(limit=50000):
             imp.id AS impression_id,
             imp.user_id,
             imp.scroll_id,
+            imp.product_id,
+            COALESCE(imp.item_type, CASE WHEN imp.product_id IS NOT NULL THEN 2 ELSE 1 END) AS item_type,
             imp.session_id,
             imp.position_index,
             imp.feed_type,
@@ -48,16 +53,100 @@ def build_training_dataset(limit=50000):
             imp.ml_shadow_score,
             imp.ml_commerce_score,
             imp.heuristic_score,
-            COALESCE(s.content_category, s.category) AS content_category,
-            s.category,
-            COALESCE(s.quality_score, 0) AS video_quality,
+            COALESCE(s.content_category, p.content_category, s.category, p.category) AS content_category,
+            COALESCE(s.category, p.category) AS category,
+            COALESCE(s.user_id, p.user_id) AS creator_id,
             CASE
+                WHEN COALESCE(imp.item_type, CASE WHEN imp.product_id IS NOT NULL THEN 2 ELSE 1 END) = 2
+                    THEN COALESCE(p.average_rating::float, 0.0)
+                ELSE COALESCE(s.quality_score::float, 0.0)
+            END AS video_quality,
+            CASE
+                WHEN COALESCE(imp.item_type, CASE WHEN imp.product_id IS NOT NULL THEN 2 ELSE 1 END) = 2 THEN 1
                 WHEN s.products IS NOT NULL AND cardinality(s.products) > 0 THEN 1
                 ELSE 0
             END AS has_products,
-            EXTRACT(HOUR FROM imp.created_at) AS hour_of_day
+            EXTRACT(HOUR FROM imp.created_at) AS hour_of_day,
+            CASE
+                WHEN COALESCE(imp.item_type, CASE WHEN imp.product_id IS NOT NULL THEN 2 ELSE 1 END) = 2
+                    THEN LEAST(
+                        1.0,
+                        (
+                            COALESCE(igs.clicks, 0)::float
+                            + COALESCE(igs.product_views, 0)::float
+                            + (COALESCE(igs.carts, 0)::float * 3.0)
+                            + (COALESCE(igs.purchases, 0)::float * 6.0)
+                        ) / GREATEST(COALESCE(igs.impressions, 0)::float, 1.0)
+                    )
+                ELSE COALESCE(
+                    CASE
+                        WHEN ss.impressions > 0 THEN ss.completions::float / ss.impressions::float
+                        ELSE 0
+                    END,
+                    0.0
+                )
+            END AS completion_rate,
+            CASE
+                WHEN COALESCE(imp.item_type, CASE WHEN imp.product_id IS NOT NULL THEN 2 ELSE 1 END) = 2
+                    THEN COALESCE(
+                        (COALESCE(igs.clicks, 0)::float + COALESCE(igs.product_views, 0)::float)
+                        / NULLIF(COALESCE(igs.impressions, 0)::float, 0.0),
+                        0.0
+                    )
+                ELSE COALESCE(
+                    COALESCE(ss.qualified_views, 0)::float / NULLIF(COALESCE(ss.impressions, 0)::float, 0.0),
+                    0.0
+                )
+            END AS global_ctr,
+            CASE
+                WHEN COALESCE(imp.item_type, CASE WHEN imp.product_id IS NOT NULL THEN 2 ELSE 1 END) = 2
+                    THEN COALESCE(
+                        COALESCE(igs.purchases, 0)::float / NULLIF(COALESCE(igs.impressions, 0)::float, 0.0),
+                        0.0
+                    )
+                ELSE COALESCE(
+                    COALESCE(ss.purchases, 0)::float / NULLIF(COALESCE(ss.impressions, 0)::float, 0.0),
+                    0.0
+                )
+            END AS global_conversion_rate,
+            CASE
+                WHEN COALESCE(imp.item_type, CASE WHEN imp.product_id IS NOT NULL THEN 2 ELSE 1 END) = 2
+                    THEN LEAST(
+                        1.0,
+                        LN(
+                            1
+                            + GREATEST(COALESCE(p.total_sales_count, 0), 0)
+                            + GREATEST(COALESCE(p.review_count, 0), 0)
+                            + GREATEST(COALESCE(p.likes, 0), 0)
+                            + GREATEST(COALESCE(p.save_count, 0), 0)
+                        ) / 5.0
+                    )
+                ELSE LEAST(
+                    1.0,
+                    LN(
+                        1
+                        + GREATEST(COALESCE(s.views, 0), 0)
+                        + GREATEST(COALESCE(s.likes, 0), 0)
+                        + GREATEST(COALESCE(s.save_count, 0), 0)
+                    ) / 5.0
+                )
+            END AS social_proof_score,
+            CASE
+                WHEN COALESCE(imp.item_type, CASE WHEN imp.product_id IS NOT NULL THEN 2 ELSE 1 END) = 2
+                    THEN COALESCE(p.created_at, imp.created_at)
+                ELSE COALESCE(s.created_at, imp.created_at)
+            END AS content_created_at
         FROM scroll_impressions imp
-        JOIN scrolls s ON imp.scroll_id = s.id
+        LEFT JOIN scrolls s
+            ON imp.scroll_id = s.id
+        LEFT JOIN products p
+            ON imp.product_id = p.id
+        LEFT JOIN scroll_stats ss
+            ON ss.scroll_id = imp.scroll_id
+        LEFT JOIN item_global_stats igs
+            ON igs.item_id = COALESCE(imp.product_id, imp.scroll_id)
+           AND igs.item_type = COALESCE(imp.item_type, CASE WHEN imp.product_id IS NOT NULL THEN 2 ELSE 1 END)
+        WHERE imp.scroll_id IS NOT NULL OR imp.product_id IS NOT NULL
         ORDER BY imp.created_at DESC
         LIMIT {int(limit)}
     )
@@ -65,6 +154,8 @@ def build_training_dataset(limit=50000):
         bi.impression_id,
         bi.user_id,
         bi.scroll_id,
+        bi.product_id,
+        bi.item_type,
         bi.position_index,
         bi.feed_type,
         bi.impressed_at,
@@ -77,16 +168,24 @@ def build_training_dataset(limit=50000):
         bi.has_products,
         bi.hour_of_day,
         COALESCE(uca.score, 0.0) AS user_category_score,
+        COALESCE(ucr.score, 0.0) AS creator_affinity_score,
         COALESCE(pb.expected_ctr, 0.05) AS expected_ctr_at_position,
-        COALESCE(
-            CASE
-                WHEN ss.impressions > 0 THEN ss.completions::float / ss.impressions::float
-                ELSE 0
-            END,
-            0.0
-        ) AS completion_rate,
+        COALESCE(bi.completion_rate, 0.0) AS completion_rate,
         COALESCE(session_ctx.session_velocity, 1.0) AS session_velocity,
         COALESCE(session_ctx.session_dwell_time, 0.0) AS session_dwell_time,
+        CASE WHEN bi.item_type = 2 THEN 1 ELSE 0 END AS is_product,
+        COALESCE(
+            1.0 / (
+                1.0
+                + (
+                    EXTRACT(EPOCH FROM (bi.impressed_at - bi.content_created_at)) / 3600.0
+                ) / CASE WHEN bi.item_type = 2 THEN 72.0 ELSE 24.0 END
+            ),
+            0.0
+        ) AS content_freshness,
+        COALESCE(bi.global_ctr, 0.0) AS global_ctr,
+        COALESCE(bi.global_conversion_rate, 0.0) AS global_conversion_rate,
+        COALESCE(bi.social_proof_score, 0.0) AS social_proof_score,
         COALESCE(ir.is_qualified_view, 0) AS is_qualified_view,
         COALESCE(ir.is_complete, 0) AS is_complete,
         COALESCE(ir.is_skip, 0) AS is_skip,
@@ -110,10 +209,11 @@ def build_training_dataset(limit=50000):
     LEFT JOIN user_category_affinity uca
         ON uca.user_id = bi.user_id
        AND uca.category_id = bi.content_category
+    LEFT JOIN user_creator_affinity ucr
+        ON ucr.user_id = bi.user_id
+       AND ucr.creator_id = bi.creator_id
     LEFT JOIN position_bias_baseline pb
         ON pb.position_index = bi.position_index
-    LEFT JOIN scroll_stats ss
-        ON ss.scroll_id = bi.scroll_id
     LEFT JOIN LATERAL (
         SELECT
             MAX(CASE WHEN si.event_type = 1 THEN 1 ELSE 0 END) AS is_qualified_view,
@@ -133,7 +233,10 @@ def build_training_dataset(limit=50000):
                 OR (
                     si.impression_id IS NULL
                     AND si.user_id = bi.user_id
-                    AND si.scroll_id = bi.scroll_id
+                    AND (
+                        (bi.item_type = 1 AND si.scroll_id = bi.scroll_id)
+                        OR (bi.item_type = 2 AND si.product_id = bi.product_id)
+                    )
                     AND (bi.session_id IS NULL OR si.session_id = bi.session_id)
                     AND si.created_at >= bi.impressed_at
                     AND si.created_at < bi.impressed_at + interval '1 hour'
@@ -174,7 +277,7 @@ def build_training_dataset(limit=50000):
         print("⚠️  No data found in scroll_impressions yet. Start scrolling in the app!")
         return None
 
-    for column in ["impression_id", "user_id", "scroll_id"]:
+    for column in ["impression_id", "user_id", "scroll_id", "product_id"]:
         if column in df.columns:
             df[column] = df[column].astype(str)
 

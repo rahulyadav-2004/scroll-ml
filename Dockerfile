@@ -21,6 +21,8 @@ RUN mkdir -p models
 
 # Railway provides the PORT environment variable
 ENV PORT=8001
+ENV MPLCONFIGDIR=/tmp/matplotlib
+ENV PYTHONUNBUFFERED=1
 
 # Start the service
 CMD ["sh", "-c", "uvicorn src.inference_service:app --host 0.0.0.0 --port ${PORT}"]

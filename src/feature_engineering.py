@@ -5,7 +5,7 @@ from typing import Iterable
 import pandas as pd
 
 
-FEATURE_COLUMNS = [
+CORE_FEATURE_COLUMNS = [
     "position_index",
     "user_category_score",
     "video_quality",
@@ -15,6 +15,15 @@ FEATURE_COLUMNS = [
     "expected_ctr_at_position",
     "session_velocity",
     "session_dwell_time",
+]
+
+FEATURE_COLUMNS = CORE_FEATURE_COLUMNS + [
+    "is_product",
+    "creator_affinity_score",
+    "content_freshness",
+    "global_ctr",
+    "global_conversion_rate",
+    "social_proof_score",
 ]
 
 LABEL_COLUMNS = [
@@ -41,6 +50,8 @@ METADATA_COLUMNS = [
     "impression_id",
     "user_id",
     "scroll_id",
+    "product_id",
+    "item_type",
     "feed_type",
     "category",
     "content_category",
@@ -59,6 +70,12 @@ DEFAULT_NUMERIC_VALUES = {
     "expected_ctr_at_position": 0.05,
     "session_velocity": 1.0,
     "session_dwell_time": 0.0,
+    "is_product": 0,
+    "creator_affinity_score": 0.0,
+    "content_freshness": 0.0,
+    "global_ctr": 0.0,
+    "global_conversion_rate": 0.0,
+    "social_proof_score": 0.0,
     "ml_shadow_score": 0.0,
     "ml_commerce_score": 0.0,
     "heuristic_score": 0.0,
