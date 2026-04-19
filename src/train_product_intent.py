@@ -34,16 +34,26 @@ def _to_binary(series_or_scalar, row_count):
 def _build_target_candidates(df):
     row_count = len(df)
     purchase = _to_binary(df.get("is_purchase", 0), row_count)
+    checkout_start = _to_binary(df.get("is_checkout_start", 0), row_count)
     add_to_cart = _to_binary(df.get("is_add_to_cart", 0), row_count)
     product_click = _to_binary(df.get("is_product_click", 0), row_count)
+    product_view = _to_binary(df.get("is_product_view", 0), row_count)
 
-    commerce_intent = ((purchase == 1) | (add_to_cart == 1) | (product_click == 1)).astype(int)
+    commerce_intent = (
+        (purchase == 1)
+        | (checkout_start == 1)
+        | (add_to_cart == 1)
+        | (product_click == 1)
+        | (product_view == 1)
+    ).astype(int)
 
     return [
         ("is_purchase", purchase),
         ("commerce_intent", commerce_intent),
+        ("is_checkout_start", checkout_start),
         ("is_add_to_cart", add_to_cart),
         ("is_product_click", product_click),
+        ("is_product_view", product_view),
     ]
 
 

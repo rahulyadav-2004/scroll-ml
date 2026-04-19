@@ -8,8 +8,10 @@ from sqlalchemy.exc import SQLAlchemyError
 
 try:
     from .feature_engineering import ensure_training_frame
+    from .recommendation_events import EVENT_TYPES
 except ImportError:
     from feature_engineering import ensure_training_frame
+    from recommendation_events import EVENT_TYPES
 
 
 load_dotenv()
@@ -190,17 +192,21 @@ def build_training_dataset(limit=50000):
         COALESCE(ir.is_complete, 0) AS is_complete,
         COALESCE(ir.is_skip, 0) AS is_skip,
         COALESCE(ir.is_rewatch, 0) AS is_rewatch,
+        COALESCE(ir.is_product_view, 0) AS is_product_view,
         COALESCE(ir.is_share, 0) AS is_share,
         COALESCE(ir.is_product_click, 0) AS is_product_click,
         COALESCE(ir.is_add_to_cart, 0) AS is_add_to_cart,
+        COALESCE(ir.is_checkout_start, 0) AS is_checkout_start,
         COALESCE(ir.is_purchase, 0) AS is_purchase,
         COALESCE(ir.is_save, 0) AS is_save,
         COALESCE(ir.is_pause, 0) AS is_pause,
         CASE
             WHEN COALESCE(ir.is_qualified_view, 0) = 1
               OR COALESCE(ir.is_complete, 0) = 1
+              OR COALESCE(ir.is_product_view, 0) = 1
               OR COALESCE(ir.is_product_click, 0) = 1
               OR COALESCE(ir.is_add_to_cart, 0) = 1
+              OR COALESCE(ir.is_checkout_start, 0) = 1
               OR COALESCE(ir.is_purchase, 0) = 1
               OR COALESCE(ir.is_save, 0) = 1
             THEN 1 ELSE 0
@@ -216,16 +222,18 @@ def build_training_dataset(limit=50000):
         ON pb.position_index = bi.position_index
     LEFT JOIN LATERAL (
         SELECT
-            MAX(CASE WHEN si.event_type = 1 THEN 1 ELSE 0 END) AS is_qualified_view,
-            MAX(CASE WHEN si.event_type = 2 THEN 1 ELSE 0 END) AS is_complete,
-            MAX(CASE WHEN si.event_type = 3 THEN 1 ELSE 0 END) AS is_skip,
-            MAX(CASE WHEN si.event_type = 4 THEN 1 ELSE 0 END) AS is_rewatch,
-            MAX(CASE WHEN si.event_type = 5 THEN 1 ELSE 0 END) AS is_share,
-            MAX(CASE WHEN si.event_type = 6 THEN 1 ELSE 0 END) AS is_product_click,
-            MAX(CASE WHEN si.event_type = 7 THEN 1 ELSE 0 END) AS is_add_to_cart,
-            MAX(CASE WHEN si.event_type = 8 THEN 1 ELSE 0 END) AS is_purchase,
-            MAX(CASE WHEN si.event_type = 9 THEN 1 ELSE 0 END) AS is_save,
-            MAX(CASE WHEN si.event_type = 13 THEN 1 ELSE 0 END) AS is_pause
+            MAX(CASE WHEN si.event_type = {EVENT_TYPES["QUALIFIED_VIEW"]} THEN 1 ELSE 0 END) AS is_qualified_view,
+            MAX(CASE WHEN si.event_type = {EVENT_TYPES["COMPLETE"]} THEN 1 ELSE 0 END) AS is_complete,
+            MAX(CASE WHEN si.event_type = {EVENT_TYPES["SKIP"]} THEN 1 ELSE 0 END) AS is_skip,
+            MAX(CASE WHEN si.event_type = {EVENT_TYPES["REWATCH"]} THEN 1 ELSE 0 END) AS is_rewatch,
+            MAX(CASE WHEN si.event_type = {EVENT_TYPES["PRODUCT_VIEW"]} THEN 1 ELSE 0 END) AS is_product_view,
+            MAX(CASE WHEN si.event_type = {EVENT_TYPES["SHARE"]} THEN 1 ELSE 0 END) AS is_share,
+            MAX(CASE WHEN si.event_type = {EVENT_TYPES["PRODUCT_CLICK"]} THEN 1 ELSE 0 END) AS is_product_click,
+            MAX(CASE WHEN si.event_type = {EVENT_TYPES["ADD_TO_CART"]} THEN 1 ELSE 0 END) AS is_add_to_cart,
+            MAX(CASE WHEN si.event_type = {EVENT_TYPES["CHECKOUT_START"]} THEN 1 ELSE 0 END) AS is_checkout_start,
+            MAX(CASE WHEN si.event_type = {EVENT_TYPES["PURCHASE"]} THEN 1 ELSE 0 END) AS is_purchase,
+            MAX(CASE WHEN si.event_type = {EVENT_TYPES["SAVE"]} THEN 1 ELSE 0 END) AS is_save,
+            MAX(CASE WHEN si.event_type = {EVENT_TYPES["SCROLL_PAUSE"]} THEN 1 ELSE 0 END) AS is_pause
         FROM scroll_interactions si
         WHERE
             (

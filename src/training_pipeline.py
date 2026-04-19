@@ -96,17 +96,27 @@ class AutoTrainingConfig:
 
 def build_dataset_summary(df):
     purchase = df.get("is_purchase", pd.Series(dtype=int)).fillna(0).astype(int)
+    checkout_start = df.get("is_checkout_start", pd.Series(dtype=int)).fillna(0).astype(int)
     add_to_cart = df.get("is_add_to_cart", pd.Series(dtype=int)).fillna(0).astype(int)
     product_click = df.get("is_product_click", pd.Series(dtype=int)).fillna(0).astype(int)
+    product_view = df.get("is_product_view", pd.Series(dtype=int)).fillna(0).astype(int)
     click = df.get("is_click", pd.Series(dtype=int)).fillna(0).astype(int)
-    commerce_intent = ((purchase == 1) | (add_to_cart == 1) | (product_click == 1)).astype(int)
+    commerce_intent = (
+        (purchase == 1)
+        | (checkout_start == 1)
+        | (add_to_cart == 1)
+        | (product_click == 1)
+        | (product_view == 1)
+    ).astype(int)
 
     return {
         "rows": int(len(df)),
         "click_positives": int((click == 1).sum()),
         "purchase_positives": int((purchase == 1).sum()),
+        "checkout_start_positives": int((checkout_start == 1).sum()),
         "add_to_cart_positives": int((add_to_cart == 1).sum()),
         "product_click_positives": int((product_click == 1).sum()),
+        "product_view_positives": int((product_view == 1).sum()),
         "commerce_positives": int((commerce_intent == 1).sum()),
         "click_rate": float(click.mean()) if len(df) else 0.0,
         "commerce_rate": float(commerce_intent.mean()) if len(df) else 0.0,
