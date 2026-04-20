@@ -24,6 +24,10 @@ FEATURE_COLUMNS = CORE_FEATURE_COLUMNS + [
     "global_ctr",
     "global_conversion_rate",
     "social_proof_score",
+    "semantic_score",
+    "retrieval_score",
+    "has_semantic_candidate",
+    "semantic_profile_strength",
 ]
 
 LABEL_COLUMNS = [
@@ -58,6 +62,10 @@ METADATA_COLUMNS = [
     "category",
     "content_category",
     "impressed_at",
+    "candidate_source",
+    "recommendation_profile_kind",
+    "recommendation_run_id",
+    "ranking_version",
 ]
 
 DATASET_COLUMNS = METADATA_COLUMNS + FEATURE_COLUMNS + SCORE_COLUMNS + LABEL_COLUMNS
@@ -78,6 +86,10 @@ DEFAULT_NUMERIC_VALUES = {
     "global_ctr": 0.0,
     "global_conversion_rate": 0.0,
     "social_proof_score": 0.0,
+    "semantic_score": 0.0,
+    "retrieval_score": 0.0,
+    "has_semantic_candidate": 0,
+    "semantic_profile_strength": 0.0,
     "ml_shadow_score": 0.0,
     "ml_commerce_score": 0.0,
     "heuristic_score": 0.0,

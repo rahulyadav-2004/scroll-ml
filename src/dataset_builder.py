@@ -55,6 +55,12 @@ def build_training_dataset(limit=50000):
             imp.ml_shadow_score,
             imp.ml_commerce_score,
             imp.heuristic_score,
+            imp.recommendation_run_id,
+            imp.ranking_version,
+            imp.candidate_source,
+            imp.recommendation_profile_kind,
+            COALESCE(imp.retrieval_score::float, 0.0) AS retrieval_score,
+            COALESCE(imp.semantic_score::float, 0.0) AS semantic_score,
             COALESCE(s.content_category, p.content_category, s.category, p.category) AS content_category,
             COALESCE(s.category, p.category) AS category,
             COALESCE(s.user_id, p.user_id) AS creator_id,
@@ -164,6 +170,10 @@ def build_training_dataset(limit=50000):
         bi.ml_shadow_score,
         bi.ml_commerce_score,
         bi.heuristic_score,
+        bi.recommendation_run_id,
+        bi.ranking_version,
+        bi.candidate_source,
+        bi.recommendation_profile_kind,
         bi.category,
         bi.content_category,
         bi.video_quality,
@@ -188,6 +198,20 @@ def build_training_dataset(limit=50000):
         COALESCE(bi.global_ctr, 0.0) AS global_ctr,
         COALESCE(bi.global_conversion_rate, 0.0) AS global_conversion_rate,
         COALESCE(bi.social_proof_score, 0.0) AS social_proof_score,
+        COALESCE(bi.semantic_score, 0.0) AS semantic_score,
+        COALESCE(bi.retrieval_score, 0.0) AS retrieval_score,
+        CASE
+            WHEN bi.semantic_score > 0 OR bi.retrieval_score > 0 THEN 1
+            ELSE 0
+        END AS has_semantic_candidate,
+        CASE
+            WHEN bi.recommendation_profile_kind = 'behavior_14d' THEN 1.0
+            WHEN bi.recommendation_profile_kind = 'behavior_7d' THEN 0.9
+            WHEN bi.recommendation_profile_kind = 'session' THEN 0.75
+            WHEN bi.recommendation_profile_kind = 'declared_interest' THEN 0.55
+            WHEN bi.recommendation_profile_kind = 'manual' THEN 0.4
+            ELSE 0.0
+        END AS semantic_profile_strength,
         COALESCE(ir.is_qualified_view, 0) AS is_qualified_view,
         COALESCE(ir.is_complete, 0) AS is_complete,
         COALESCE(ir.is_skip, 0) AS is_skip,
@@ -285,7 +309,16 @@ def build_training_dataset(limit=50000):
         print("⚠️  No data found in scroll_impressions yet. Start scrolling in the app!")
         return None
 
-    for column in ["impression_id", "user_id", "scroll_id", "product_id"]:
+    for column in [
+        "impression_id",
+        "user_id",
+        "scroll_id",
+        "product_id",
+        "recommendation_run_id",
+        "candidate_source",
+        "recommendation_profile_kind",
+        "ranking_version",
+    ]:
         if column in df.columns:
             df[column] = df[column].astype(str)
 

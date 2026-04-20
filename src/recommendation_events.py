@@ -1,6 +1,8 @@
 ITEM_TYPES = {
     "SCROLL": 1,
     "PRODUCT": 2,
+    "STYLE": 3,
+    "CIRCLE_POST": 4,
 }
 
 EVENT_TYPES = {

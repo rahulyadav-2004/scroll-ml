@@ -189,6 +189,10 @@ class ScrollFeature(BaseModel):
     global_ctr: float = 0.0
     global_conversion_rate: float = 0.0
     social_proof_score: float = 0.0
+    semantic_score: float = 0.0
+    retrieval_score: float = 0.0
+    has_semantic_candidate: int = 0
+    semantic_profile_strength: float = 0.0
 
 
 class BatchRequest(BaseModel):
@@ -251,6 +255,10 @@ def predict(batch: BatchRequest):
                     "global_ctr": item.global_ctr,
                     "global_conversion_rate": item.global_conversion_rate,
                     "social_proof_score": item.social_proof_score,
+                    "semantic_score": item.semantic_score,
+                    "retrieval_score": item.retrieval_score,
+                    "has_semantic_candidate": item.has_semantic_candidate,
+                    "semantic_profile_strength": item.semantic_profile_strength,
                 }
                 for item in batch.items
             ]
