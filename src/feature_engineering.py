@@ -28,6 +28,11 @@ FEATURE_COLUMNS = CORE_FEATURE_COLUMNS + [
     "retrieval_score",
     "has_semantic_candidate",
     "semantic_profile_strength",
+    "text_semantic_score",
+    "visual_semantic_score",
+    "semantic_agreement_score",
+    "has_visual_embedding",
+    "category_visual_prior",
 ]
 
 LABEL_COLUMNS = [
@@ -90,6 +95,11 @@ DEFAULT_NUMERIC_VALUES = {
     "retrieval_score": 0.0,
     "has_semantic_candidate": 0,
     "semantic_profile_strength": 0.0,
+    "text_semantic_score": 0.0,
+    "visual_semantic_score": 0.0,
+    "semantic_agreement_score": 0.0,
+    "has_visual_embedding": 0,
+    "category_visual_prior": 0.0,
     "ml_shadow_score": 0.0,
     "ml_commerce_score": 0.0,
     "heuristic_score": 0.0,

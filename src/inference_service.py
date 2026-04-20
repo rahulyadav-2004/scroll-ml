@@ -193,6 +193,11 @@ class ScrollFeature(BaseModel):
     retrieval_score: float = 0.0
     has_semantic_candidate: int = 0
     semantic_profile_strength: float = 0.0
+    text_semantic_score: float = 0.0
+    visual_semantic_score: float = 0.0
+    semantic_agreement_score: float = 0.0
+    has_visual_embedding: int = 0
+    category_visual_prior: float = 0.0
 
 
 class BatchRequest(BaseModel):
@@ -259,6 +264,11 @@ def predict(batch: BatchRequest):
                     "retrieval_score": item.retrieval_score,
                     "has_semantic_candidate": item.has_semantic_candidate,
                     "semantic_profile_strength": item.semantic_profile_strength,
+                    "text_semantic_score": item.text_semantic_score,
+                    "visual_semantic_score": item.visual_semantic_score,
+                    "semantic_agreement_score": item.semantic_agreement_score,
+                    "has_visual_embedding": item.has_visual_embedding,
+                    "category_visual_prior": item.category_visual_prior,
                 }
                 for item in batch.items
             ]
