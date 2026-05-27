@@ -1,14 +1,18 @@
-import os
 import psycopg2
 from dotenv import load_dotenv
+
+try:
+    from .db_config import resolve_database_url
+except ImportError:
+    from db_config import resolve_database_url
 
 # Load environment variables from .env file
 load_dotenv()
 
 def test_connection():
-    db_url = os.getenv("DATABASE_URL")
+    db_url = resolve_database_url()
     if not db_url:
-        print("❌ Error: DATABASE_URL not found in .env file.")
+        print("ERROR: DATABASE_URL not found in .env file.")
         return
 
     try:
@@ -19,7 +23,7 @@ def test_connection():
         # Simple query to test the connection
         cur.execute("SELECT version();")
         db_version = cur.fetchone()
-        print(f"✅ Successfully connected to the database!")
+        print("OK: Successfully connected to the database.")
         print(f"Database version: {db_version[0]}")
         
         # Test if our new tables exist
@@ -32,7 +36,7 @@ def test_connection():
         cur.close()
         conn.close()
     except Exception as e:
-        print(f"❌ Error connecting to the database: {e}")
+        print(f"ERROR: Error connecting to the database: {e}")
 
 if __name__ == "__main__":
     test_connection()

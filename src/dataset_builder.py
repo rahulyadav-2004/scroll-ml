@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 
 import pandas as pd
@@ -7,9 +6,11 @@ from sqlalchemy import create_engine
 from sqlalchemy.exc import SQLAlchemyError
 
 try:
+    from .db_config import resolve_sqlalchemy_database_url
     from .feature_engineering import ensure_training_frame
     from .recommendation_events import EVENT_TYPES
 except ImportError:
+    from db_config import resolve_sqlalchemy_database_url
     from feature_engineering import ensure_training_frame
     from recommendation_events import EVENT_TYPES
 
@@ -28,17 +29,14 @@ def build_training_dataset(limit=50000):
     - Attribute interactions to impressions more reliably.
     - Emit both engagement and commerce labels from real logs.
     """
-    db_url = os.getenv("DATABASE_URL")
+    db_url = resolve_sqlalchemy_database_url()
     if not db_url:
-        print("❌ DATABASE_URL not found.")
+        print("ERROR: DATABASE_URL not found.")
         return None
-
-    if db_url.startswith("postgresql://"):
-        db_url = db_url.replace("postgresql://", "postgresql+psycopg2://", 1)
 
     engine = create_engine(db_url)
 
-    print("🛰️  Fetching raw data from production DB...")
+    print("Fetching raw data from production DB...")
 
     query = f"""
     WITH base_impressions AS (
@@ -301,12 +299,12 @@ def build_training_dataset(limit=50000):
     try:
         df = pd.read_sql(query, engine)
     except SQLAlchemyError as exc:
-        print("❌ Failed to build real dataset from Postgres.")
+        print("ERROR: Failed to build real dataset from Postgres.")
         print(f"   Reason: {exc}")
         return None
 
     if df.empty:
-        print("⚠️  No data found in scroll_impressions yet. Start scrolling in the app!")
+        print("WARNING: No data found in scroll_impressions yet. Start scrolling in the app.")
         return None
 
     for column in [
@@ -330,11 +328,11 @@ def build_training_dataset(limit=50000):
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     df.to_parquet(OUTPUT_PATH, index=False)
 
-    print(f"✅ Dataset built: {OUTPUT_PATH}")
-    print(f"📦 Rows: {len(df)}")
-    print(f"📈 Click Rate: {df['is_click'].mean():.2%}")
-    print(f"🛒 Purchase Rate: {df['is_purchase'].mean():.2%}")
-    print(f"👀 Qualified View Rate: {df['is_qualified_view'].mean():.2%}")
+    print(f"Dataset built: {OUTPUT_PATH}")
+    print(f"Rows: {len(df)}")
+    print(f"Click Rate: {df['is_click'].mean():.2%}")
+    print(f"Purchase Rate: {df['is_purchase'].mean():.2%}")
+    print(f"Qualified View Rate: {df['is_qualified_view'].mean():.2%}")
 
     return df
 
