@@ -1,5 +1,6 @@
 import os
 import time
+import warnings
 from threading import Event, Lock, RLock, Thread
 
 import joblib
@@ -37,6 +38,7 @@ except ImportError:
 
 
 load_dotenv()
+warnings.filterwarnings("ignore", message=".*on_event is deprecated.*", category=DeprecationWarning)
 
 app = FastAPI(
     title="Scroll ML Inference Service",
